@@ -1,0 +1,15 @@
+# AI tools
+openai
+langchain
+tiktoken # Count tokens
+
+# Vectordb
+chromadb
+
+# Frontend
+gradio
+
+# Configparsing
+pyyaml
+python-box
+python-dotenv

@@ -1,0 +1,32 @@
+# Factor in version constraints from prod file (pip-compile-multi uses -r)
+-r requirements.in
+
+# setup tools / building
+# Setuptools and wheel specific versioning is there for pip-sync verify-hashes error
+build
+twine
+wheel
+tox
+
+# Testing modules
+pytest
+pytest-mock
+pytest-cov
+pytest-cases
+
+# Documentation
+sphinx
+sphinx-rtd-theme
+
+# Dependency management and security
+pip-compile-multi
+pip-audit
+pip_search # For searching pypi
+
+# Code quality and development
+pre-commit
+black
+isort
+flake8
+mypy
+pylint
