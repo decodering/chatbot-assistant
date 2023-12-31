@@ -5,7 +5,8 @@ from box.box import Box
 from dotenv import load_dotenv
 from openai import OpenAI
 from openai.types.chat import ChatCompletion
-
+from openai._streaming import Stream
+from typing import TypeVar, Iterator
 from utils import get_src_dir_path, num_tokens_from_messages, num_tokens_from_string, read_yaml
 
 
@@ -15,11 +16,13 @@ class OAIClient:
     TEMPERATURE: float = 0.2
     SEED: int = 12345
     TOP_P: float = 1.0
+    _POSTPROCESS_STREAM: bool = False
 
     # Session state params
     input_tokens_used: int = 0
     output_tokens_used: int = 0
     pricing_cost: float = 0.0
+    num_calls: int = 0
 
     # Hardcoded
     # Cost of model calls (per 1000 tokens) (input, output costs)
@@ -32,7 +35,7 @@ class OAIClient:
     def __init__(
         self,
         api_key: str = None,
-        config: Box = None,
+        config_file: Box = None,
         client: OpenAI = None,
     ) -> None:
         """
@@ -40,7 +43,7 @@ class OAIClient:
         Models pricing: https://openai.com/pricing // https://platform.openai.com/docs/deprecations/2023-11-06-chat-model-updates
         Nice costcalculating library: https://www.reddit.com/r/Python/comments/12lec2s/openai_pricing_logger_a_python_package_to_easily/
         """
-        self._parse_config(config_path=config)
+        self._parse_config(config_path=config_file)
         self.client = client if client else self._init_client(api_key=api_key)
 
     def __call__(self, *args, **kwargs):
@@ -55,6 +58,7 @@ class OAIClient:
         top_p: float = None,
         max_tokens: int = None,
         return_raw_response: bool = False,
+        stream: bool = False,
         **kwargs,
     ) -> Union[str, ChatCompletion]:
         # Defaults
@@ -70,9 +74,23 @@ class OAIClient:
             seed=seed,
             top_p=top_p,
             max_tokens=max_tokens,
+            stream=stream,
             **kwargs,
         )
-        self._postprocess(messages=messages, model=model, response=response)
+        # Update state
+        # TODO: Put in postprocessing step
+        self.num_calls += 1
+        if stream and not isinstance(response, Stream):
+            raise ValueError("Response is streamed, but not an OpenAI.Stream object!")
+        if stream and self._POSTPROCESS_STREAM:
+            # TODO: Implement postprocessing for stream (MODIFY STREAM OBJECT to count tokens etc.)
+            # self._postprocess_stream(messages=messages, model=model, response=response)
+            pass
+        elif not stream:
+            self._postprocess(messages=messages, model=model, response=response)
+        else:
+            print("WARNING: Streaming response so skipping postprocessing step!")
+
         if return_raw_response:
             return response
         else:
@@ -82,11 +100,30 @@ class OAIClient:
         self,
         messages: List[Dict[str, str]],
         model: str,
-        response: str,
+        response: Union[ChatCompletion, str],
     ) -> None:
         """Postprocess response."""
         self._track_tokens_used_in_call(messages=messages, model=model, response=response)
         self._track_cost_of_call(model=model)
+
+    def _postprocess_stream(self, stream: Stream) -> None:
+        """
+        Postprocess response as stream.
+
+        Replace method of existing object: https://stackoverflow.com/a/2982/10002593
+        (USE ATTRIBUTE INSTEAD!) Passing parameters to the __iter__ method: https://stackoverflow.com/a/54395995/10002593
+        """
+
+        def newiterfunc(self) -> Iterator[TypeVar("_T")]:
+            """
+            Taken from: https://github.com/openai/openai-python/blob/main/src/openai/_streaming.py#L21
+            """
+            for item in self._iterator:
+                yield item
+            # TODO: Do something with self.OAI_CLIENT
+
+        stream.OAI_CLIENT = self
+        stream.__iter__ = newiterfunc.__get__(stream)
 
     def _track_cost_of_call(self, model: str) -> None:
         """
@@ -101,12 +138,16 @@ class OAIClient:
         self,
         messages: List[Dict[str, str]],
         model: str,
-        response: str,
+        response: Union[ChatCompletion, str],
         manual_calculation: bool = False,
     ):
         """Calculate number of tokens used in call."""
+        response_content = (
+            response if isinstance(response, str) else response.choices[0].message.content
+        )
+        manual_calculation = True if isinstance(response, str) else manual_calculation
         self.output_tokens_used += (
-            num_tokens_from_string(string=response.choices[0].message.content, model=model)
+            num_tokens_from_string(string=response_content, model=model)
             if manual_calculation
             else response.usage.completion_tokens
         )
@@ -142,10 +183,8 @@ class OAIClient:
 
     def _parse_config(self, config_path: str) -> None:
         """Parse config file from input path."""
-        if self.config is None:
-            self.config = None
-        else:
-            self.config = read_yaml(config_path=config_path) if config_path is not None else None
+        self.config = read_yaml(input_path=config_path) if config_path is not None else None
+        if config_path is not None:
             for key, value in self.config.items():
                 if key in self.__dict__:
                     setattr(self, key, value)
