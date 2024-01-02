@@ -1,17 +1,24 @@
+from os import environ, getenv
 from os.path import join
-from typing import Any, Dict, List, Optional, Union
+from typing import Dict, Iterator, List, TypeVar, Union
 
 from box.box import Box
 from dotenv import load_dotenv
-from openai import OpenAI
-from openai.types.chat import ChatCompletion
+from openai import AzureOpenAI, OpenAI
 from openai._streaming import Stream
-from typing import TypeVar, Iterator
-from utils import get_src_dir_path, num_tokens_from_messages, num_tokens_from_string, read_yaml
+from openai.types.chat import ChatCompletion
+
+from utils import (
+    detect_is_work_device,
+    get_src_dir_path,
+    num_tokens_from_messages,
+    num_tokens_from_string,
+    read_yaml,
+)
 
 
 class OAIClient:
-    # Default params (will be overwritten if config file specified)
+    # Default params (will be overwritten if param is specified in config file!)
     MODEL: str = "gpt-3.5-turbo-1106"
     TEMPERATURE: float = 0.2
     SEED: int = 12345
@@ -34,9 +41,9 @@ class OAIClient:
 
     def __init__(
         self,
-        api_key: str = None,
         config_file: Box = None,
         client: OpenAI = None,
+        **kwargs,
     ) -> None:
         """
         Models list: https://platform.openai.com/docs/models
@@ -44,7 +51,7 @@ class OAIClient:
         Nice costcalculating library: https://www.reddit.com/r/Python/comments/12lec2s/openai_pricing_logger_a_python_package_to_easily/
         """
         self._parse_config(config_path=config_file)
-        self.client = client if client else self._init_client(api_key=api_key)
+        self.client = client if client else self._init_client(**kwargs)
 
     def __call__(self, *args, **kwargs):
         return self.query(*args, **kwargs)
@@ -186,27 +193,44 @@ class OAIClient:
         self.config = read_yaml(input_path=config_path) if config_path is not None else None
         if config_path is not None:
             for key, value in self.config.items():
-                if key in self.__dict__:
+                if key in OAIClient.__dict__.keys():
                     setattr(self, key, value)
 
-    @staticmethod
-    def _init_client(api_key: str, **kwargs) -> OpenAI:
+    def _init_client(
+        self,
+        **kwargs,
+    ) -> OpenAI:
         """Initialize OpenAI client."""
-        if api_key is None:
-            try:
-                load_dotenv()
-            except Exception as e:
-                pass
-            return OpenAI(**kwargs)
+        try:
+            load_dotenv()
+        except Exception as e:
+            pass
+
+        # Take input, otherwise config, otherwise dotenv
+        relevant_params = [
+            ("api_key", "OPENAI_API_KEY"),
+            ("api_version", "OPENAI_API_VERSION"),
+            ("azure_endpoint", "AZURE_OPENAI_ENDPOINT"),
+        ]
+        kwargs_subset = dict()
+        for input_param, config_param in relevant_params:
+            if input_param in kwargs.keys():
+                kwargs_subset.update({input_param: kwargs[input_param]})
+            elif hasattr(self, config_param):
+                kwargs_subset.update({input_param: self.config_param})
+            elif config_param in environ:
+                kwargs_subset.update({input_param: getenv(config_param)})
+
+        if detect_is_work_device():
+            client = AzureOpenAI
         else:
-            return OpenAI(api_key=api_key, **kwargs)
+            client = OpenAI
+        return client(**kwargs_subset)
 
 
 if __name__ == "__main__":
     CONFIG_FILE_PATH = join(get_src_dir_path(), "config.yaml")
-    config = read_yaml(config_path=CONFIG_FILE_PATH)
-
-    client = OAIClient(api_key=config.OPENAI_API_KEY)
+    client = OAIClient(config_file=CONFIG_FILE_PATH)
     _ = client._test_connection(print_output=True)
     print(client.pricing_cost)
     print(client.input_tokens_used, client.output_tokens_used)

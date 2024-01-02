@@ -7,9 +7,10 @@ from os.path import join
 import gradio as gr
 
 from api_client import OAIClient
-from utils import get_root_dir_path, get_src_dir_path, read_yaml
+from utils import get_root_dir_path, get_src_dir_path
 
 TEXT_BLOCKING_MODE = True
+MOCK_PREDICT_MODE = False
 global_oai_client = OAIClient(config_file=join(get_src_dir_path(), "config.yaml"))
 
 
@@ -63,12 +64,14 @@ def bot_predict(chat_history: list, oai_messages_history: list):
             finished_response = chat_history[-1][1]
             global_oai_client._postprocess(
                 messages=oai_messages_history,
-                model=global_oai_client.MODEL,
+                model="gpt-3.5-turbo-1106"
+                if global_oai_client.MODEL == "zeroshot-exploration"
+                else global_oai_client.MODEL,  # TODO: Special work flag
                 response=finished_response,
             )
-            print(global_oai_client.input_tokens_used)
-            print(global_oai_client.output_tokens_used)
-            print(global_oai_client.pricing_cost)
+            print(f"INPUT tokens used: {global_oai_client.input_tokens_used}")
+            print(f"OUTPUT tokens used: {global_oai_client.output_tokens_used}")
+            print(f"Cumulative cost so far: $ {global_oai_client.pricing_cost}")
 
         if new_msg_chunk.content is not None:
             chat_history[-1][1] += new_msg_chunk.content
@@ -114,7 +117,10 @@ with gr.Blocks() as demo:
         label="CHATTERBOT-v1.0-BETA",
         elem_id="chatbot",
         bubble_full_width=False,
-        avatar_images=(None, (join(get_root_dir_path(), "assets", "imgs", "avatar.png"))),
+        avatar_images=(
+            None,
+            (join(get_root_dir_path(), "assets", "imgs", "avatar.png")),
+        ),
     )
     with gr.Row():
         with gr.Column(scale=4):
