@@ -160,7 +160,7 @@ with gr.Blocks() as demo:
     # Need to reset button function as it's blocked during processing of user input
     submit_btn_msg.then(f_passed, None, [txt], queue=False)
 
-    clear_btn.click(lambda: None, None, chatbot, queue=False)
+    clear_btn.click(lambda: (None, None), None, [chatbot, oai_messages_state], queue=False)
     file_msg = btn.upload(add_file, [chatbot, btn], [chatbot], queue=False).then(
         bot_mock_predict, chatbot, chatbot
     )
