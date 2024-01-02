@@ -39,13 +39,8 @@ def bot_predict(chat_history: list, oai_messages_history: list):
                 "role": "system",
                 "content": "You are a helpful AI assistant.",
             },
-            {
-                "role": "user",
-                "content": user_input,
-            },
         ]
-    else:
-        oai_messages_history.append({"role": "user", "content": user_input})
+    oai_messages_history.append({"role": "user", "content": user_input})
 
     stream = global_oai_client(
         messages=oai_messages_history,
