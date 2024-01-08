@@ -2,6 +2,7 @@ from openai import OpenAI
 from dotenv import load_dotenv
 
 # https://platform.openai.com/docs/guides/images
+# Useful FAQs for DALL-E api: https://help.openai.com/en/collections/3698342-dall-e-api
 
 
 PREFIX_FOR_NO_PROMPT_AUGMENTING = "I NEED to test how the tool works with extremely simple prompts. DO NOT add any detail, just use it AS-IS:"
