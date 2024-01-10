@@ -210,7 +210,7 @@ class OAIClient:
         relevant_params = [
             ("api_key", "OPENAI_API_KEY"),
             ("api_version", "OPENAI_API_VERSION"),
-            ("azure_endpoint", "AZURE_OPENAI_ENDPOINT"),
+            ("azure_endpoint", "OPENAI_AZURE_ENDPOINT"),
         ]
         kwargs_subset = dict()
         for input_param, config_param in relevant_params:

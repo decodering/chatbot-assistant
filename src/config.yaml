@@ -1,7 +1,10 @@
+# Config heirarchy of resolution
+# .env > .yaml > class attribute defaults
+
 ## === !!! WARNING: DO NOT put OPENAI_API_KEY here! !!! ===
 
 # OPENAI_API_KEY: null # From .env file
-# AZURE_OPENAI_ENDPOINT: null # From .env file
+# OPENAI_AZURE_ENDPOINT: null # From .env file
 # OPENAI_API_VERSION: null # From .env file
 # OPENAI_API_TYPE: null # From .env file
 
