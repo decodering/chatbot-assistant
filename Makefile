@@ -32,4 +32,9 @@ sync_requirements:
 ## Run app
 run:
 	@source ${VENV_BIN} && \
-	gradio src/app.py
+	gradio src/app_chatterbot.py
+
+## Run app - text
+run_chatterbot:
+	@source ${VENV_BIN} && \
+	gradio src/app_chatterbot.py

@@ -8,9 +8,9 @@ A gradio app for a chatbot assistant utilising the openai API. Current key featu
 
 ## Table of Contents
 
-- [Table of Contents](#table-of-contents)
 - [Setup](#setup)
 - [How to run](#how-to-run)
+- [Prompt engineering](#prompt-engineering)
 - [Envisioned UI design](#envisioned-ui-design)
   - [List of designs](#list-of-designs)
   - [Designs](#designs)
@@ -36,6 +36,12 @@ Run the gradio app using the below convenience function.
 ```bash
 make run
 ```
+
+## Prompt engineering
+
+What should be put in the system message? (Might not be that useful)
+- [Are system blocks throughout the conversation supported\? \- API \- OpenAI Developer Forum](https://community.openai.com/t/are-system-blocks-throughout-the-conversation-supported/288280 "Are system blocks throughout the conversation supported\? \- API \- OpenAI Developer Forum")
+- [What should be included in the System part of the Prompt\? \- API \- OpenAI Developer Forum](https://community.openai.com/t/what-should-be-included-in-the-system-part-of-the-prompt/515763 "What should be included in the System part of the Prompt\? \- API \- OpenAI Developer Forum")
 
 ## Envisioned UI design
 
